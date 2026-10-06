@@ -1,0 +1,6 @@
+*.o
+*.out
+*.log
+log_server
+test_client
+logs.txt
