@@ -4,3 +4,13 @@
 log_server
 test_client
 logs.txt
+
+# Python temporary files
+__pycache__/
+*.pyc
+
+# Virtual environments
+ryu-env/
+ryu311/
+.venv/
+venv/

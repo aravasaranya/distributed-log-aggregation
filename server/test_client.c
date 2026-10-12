@@ -29,7 +29,7 @@ int main()
 
     server_address.sin_family = AF_INET;
     server_address.sin_port = htons(PORT);
-    server_address.sin_addr.s_addr = inet_addr("127.0.0.1");
+    server_address.sin_addr.s_addr = inet_addr("10.0.0.4");
 
     for (int i = 0; i < 4; i++)
     {

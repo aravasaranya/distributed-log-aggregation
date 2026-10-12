@@ -76,7 +76,7 @@ int main()
             else if (strcmp(severity, "CRITICAL") == 0)
                 critical++;
 
-            FILE *file = fopen("logs.txt", "a");
+            FILE *file = fopen("/home/saranya/sdn_log_project/logs.txt", "a");
 
             if (file != NULL)
             {
