@@ -1,0 +1,9 @@
+traffic_class,mode,sent,received,packet_loss_pct,avg_rtt_ms,delivery_rate_pct
+Queue 0,baseline,13812,10258,26,,74.27
+Queue 1,baseline,13812,9233,33,,66.85
+Queue 0,congestion,4429,4429,0,,100
+Queue 1,congestion,13812,13812,0,,100
+Queue 0 Normal 1,iperf3,6398,4848,24.23,,75.77
+Queue 0 Normal 2,iperf3,6475,4359,32.68,,67.32
+Queue 0 Normal 3,iperf3,6474,4826,25.46,,74.54
+Queue 1 Critical,iperf3,6475,5079,21.56,,78.44

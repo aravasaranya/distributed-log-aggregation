@@ -4,82 +4,84 @@ from os_ken.controller.handler import CONFIG_DISPATCHER, MAIN_DISPATCHER, set_ev
 from os_ken.ofproto import ofproto_v1_3
 from os_ken.lib.packet import packet, ethernet, ether_types
 
-
 class SDNLogController(app_manager.OSKenApp):
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
 
-    def add_flow(self, datapath, priority, match, actions):
-        parser = datapath.ofproto_parser
-        inst = [parser.OFPInstructionActions(
-            datapath.ofproto.OFPIT_APPLY_ACTIONS, actions)]
+    def add_flow(self, dp, priority, match, actions):
+        parser = dp.ofproto_parser
+        ofp = dp.ofproto
+        instructions = [
+            parser.OFPInstructionActions(ofp.OFPIT_APPLY_ACTIONS, actions)
+        ]
         mod = parser.OFPFlowMod(
-            datapath=datapath,
+            datapath=dp,
             priority=priority,
             match=match,
-            instructions=inst)
-        datapath.send_msg(mod)
+            instructions=instructions
+        )
+        dp.send_msg(mod)
 
     @set_ev_cls(ofp_event.EventOFPSwitchFeatures, CONFIG_DISPATCHER)
     def switch_features(self, ev):
         dp = ev.msg.datapath
-        p = dp.ofproto_parser
-        o = dp.ofproto
+        parser = dp.ofproto_parser
+        ofp = dp.ofproto
 
-        actions = [p.OFPActionOutput(o.OFPP_CONTROLLER,
-                                      o.OFPCML_NO_BUFFER)]
-        self.add_flow(dp, 0, p.OFPMatch(), actions)
-
-        critical = p.OFPMatch(
-            eth_type=ether_types.ETH_TYPE_IP,
-            ip_proto=17,
-            udp_dst=10001
-        )
         self.add_flow(
             dp, 100,
-            critical,
-            [p.OFPActionOutput(o.OFPP_FLOOD)]
+            parser.OFPMatch(
+                eth_type=0x0800,
+                ip_proto=17,
+                udp_dst=10001
+            ),
+            [
+                parser.OFPActionSetQueue(1),
+                parser.OFPActionOutput(4)
+            ]
         )
 
-        normal = p.OFPMatch(
-            eth_type=ether_types.ETH_TYPE_IP,
-            ip_proto=17,
-            udp_dst=10000
-        )
         self.add_flow(
             dp, 50,
-            normal,
-            [p.OFPActionOutput(o.OFPP_FLOOD)]
+            parser.OFPMatch(
+                eth_type=0x0800,
+                ip_proto=17,
+                udp_dst=10000
+            ),
+            [
+                parser.OFPActionSetQueue(0),
+                parser.OFPActionOutput(4)
+            ]
         )
 
-        self.logger.info("Switch connected: %s", dp.id)
-        self.logger.info("Critical UDP priority: 100")
-        self.logger.info("Normal UDP priority: 50")
+        self.add_flow(
+            dp, 0,
+            parser.OFPMatch(),
+            [parser.OFPActionOutput(ofp.OFPP_CONTROLLER,
+                                    ofp.OFPCML_NO_BUFFER)]
+        )
+
+        self.logger.info("QoS flow rules installed on switch %s", dp.id)
 
     @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)
     def packet_in(self, ev):
         msg = ev.msg
         dp = msg.datapath
-        p = dp.ofproto_parser
-        o = dp.ofproto
+        ofp = dp.ofproto
+        parser = dp.ofproto_parser
 
         pkt = packet.Packet(msg.data)
         eth = pkt.get_protocol(ethernet.ethernet)
 
-        if eth and eth.ethertype != ether_types.ETH_TYPE_LLDP:
-            self.logger.info(
-                "Packet received: %s -> %s",
-                eth.src,
-                eth.dst
-            )
+        if eth is None or eth.ethertype == ether_types.ETH_TYPE_LLDP:
+            return
 
-        actions = [p.OFPActionOutput(o.OFPP_FLOOD)]
+        actions = [parser.OFPActionOutput(ofp.OFPP_FLOOD)]
 
-        out = p.OFPPacketOut(
+        out = parser.OFPPacketOut(
             datapath=dp,
             buffer_id=msg.buffer_id,
             in_port=msg.match['in_port'],
             actions=actions,
-            data=msg.data if msg.buffer_id == o.OFP_NO_BUFFER else None
+            data=msg.data if msg.buffer_id == ofp.OFP_NO_BUFFER else None
         )
-
         dp.send_msg(out)

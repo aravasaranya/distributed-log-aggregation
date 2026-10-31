@@ -1,16 +1,15 @@
 *.o
 *.out
 *.log
-log_server
-test_client
-logs.txt
 
-# Python temporary files
 __pycache__/
 *.pyc
+*.pyo
 
-# Virtual environments
+d2_venv/
 ryu-env/
 ryu311/
 .venv/
 venv/
+
+d2_backup/
